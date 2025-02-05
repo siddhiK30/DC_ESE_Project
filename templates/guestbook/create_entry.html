@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Guestbook Entry</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --secondary: #7c3aed;
+            --accent: #06b6d4;
+            --background: #0f172a;
+            --text: #e2e8f0;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --danger: #ef4444;
+            --info: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .bg-animation {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+        }
+
+        .bg-animation div {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.2;
+            animation: float 20s infinite linear;
+        }
+
+        .bg-animation div:nth-child(1) {
+            background: var(--primary);
+            width: 300px;
+            height: 300px;
+            left: -100px;
+            top: 10%;
+            animation-duration: 25s;
+        }
+
+        .bg-animation div:nth-child(2) {
+            background: var(--secondary);
+            width: 400px;
+            height: 400px;
+            right: -150px;
+            top: 40%;
+            animation-duration: 30s;
+        }
+
+        @keyframes float {
+            0% { transform: rotate(0deg) translate(0, 0); }
+            50% { transform: rotate(180deg) translate(50px, 50px); }
+            100% { transform: rotate(360deg) translate(0, 0); }
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1.5rem 1rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 1rem;
+            overflow: hidden;
+            animation: slideUp 0.4s ease-out;
+            animation-fill-mode: both;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            max-width: 650px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .card-header {
+            background: rgba(79, 70, 229, 0.15);
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text);
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+            resize: vertical;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            border-radius: 50px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+        }
+
+        .user-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .user-selectable {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .user-selectable:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .user-selectable.selected {
+            background: rgba(79, 70, 229, 0.2);
+        }
+
+        .badge {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+        }
+
+        .text-muted {
+            color: rgba(226, 232, 240, 0.6);
+        }
+
+        h4 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            background: linear-gradient(45deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .alert {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem 0.75rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+            
+            h4 {
+                font-size: 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation">
+        <div></div>
+        <div></div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-body">
+                <h4>Create Guestbook Entry</h4>
+                
+                <form id="guestbookForm" method="POST" action="/api/guestbook/create/">
+                    {% csrf_token %}
+                    
+                    <textarea name="content" id="content" class="form-control" rows="4" 
+                              placeholder="Write your message here..." required></textarea>
+
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <span>Select Recipients</span>
+                            <span id="selectedCountBadge" class="badge d-none">0</span>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="px-3 pt-3">
+                                <input type="text" name="q" id="userSearch" class="form-control" 
+                                       placeholder="Search users by name or username" 
+                                       value="{{ query }}"
+                                       autocomplete="off">
+                            </div>
+
+                            <div id="userList" class="user-list">
+                                {% for user in users %}
+                                <div class="user-selectable" data-user-id="{{ user.id }}">
+                                    <div>
+                                        <strong>
+                                            {% if user.first_name or user.last_name %}
+                                                {{ user.first_name }} {{ user.last_name }}
+                                            {% else %}
+                                                {{ user.username }}
+                                            {% endif %}
+                                        </strong>
+                                        <p class="text-muted">@{{ user.username }}</p>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <div id="noUsersMessage" class="alert d-none">
+                                No users found matching your search.
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="selectedUsers" id="selectedUsersInput" value="">
+
+                    <button type="submit" class="btn btn-primary" id="sendEntryBtn">
+                        Send Guestbook Entry
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('guestbookForm');
+        const userSearch = document.getElementById('userSearch');
+        const userList = document.getElementById('userList');
+        const noUsersMessage = document.getElementById('noUsersMessage');
+        const selectedUsersInput = document.getElementById('selectedUsersInput');
+        const selectedCountBadge = document.getElementById('selectedCountBadge');
+        const selectedUsers = new Set();
+
+        userList.addEventListener('click', function(event) {
+            const userItem = event.target.closest('.user-selectable');
+            if (!userItem) return;
+
+            const userId = userItem.dataset.userId;
+
+            if (selectedUsers.has(userId)) {
+                selectedUsers.delete(userId);
+                userItem.classList.remove('selected');
+            } else {
+                selectedUsers.add(userId);
+                userItem.classList.add('selected');
+            }
+
+            selectedUsersInput.value = Array.from(selectedUsers).join(',');
+
+            if (selectedUsers.size > 0) {
+                selectedCountBadge.textContent = selectedUsers.size;
+                selectedCountBadge.classList.remove('d-none');
+            } else {
+                selectedCountBadge.classList.add('d-none');
+            }
+        });
+
+        function debounce(func, delay) {
+            let timeoutId;
+            return function (...args) {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
+        const performSearch = debounce(function() {
+            const query = userSearch.value.trim();
+            
+            if (query.length < 1) {
+                fetch('{% url "create_entry" %}')
+                    .then(response => response.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        userList.innerHTML = doc.getElementById('userList').innerHTML;
+                        noUsersMessage.classList.add('d-none');
+                    });
+                return;
+            }
+
+            fetch(`{% url 'create_entry' %}?q=${encodeURIComponent(query)}`)
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const searchResults = doc.getElementById('userList').innerHTML;
+                    
+                    if (searchResults.trim()) {
+                        userList.innerHTML = searchResults;
+                        noUsersMessage.classList.add('d-none');
+                    } else {
+                        userList.innerHTML = '';
+                        noUsersMessage.classList.remove('d-none');
+                    }
+                });
+        }, 300);
+
+        userSearch.addEventListener('input', performSearch);
+    });
+    </script>
+</body>
+</html>
