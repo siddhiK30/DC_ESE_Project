@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-6f@at=*#1wb*!y(v8jtj!b6j*a6g*186%+0gz#7vxci&3woic2
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["https://guestbook-fjwx.onrender.com"]
 
 
 # Application definition
