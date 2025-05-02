@@ -374,3 +374,307 @@
     </footer>
 </body>
 </html>
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Guestbook</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}">My Site</a>
+            <div class="navbar-nav ms-auto">
+                {% if user.is_authenticated %}
+                    <span class="nav-item nav-link">Welcome, {{ user.username }}</span>
+                {% else %}
+                    <a class="nav-item nav-link" href="{% url 'login' %}">Login</a>
+                    <a class="nav-item nav-link" href="{% url 'signup' %}">Sign Up</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    {% if messages %}
+        <div class="container mt-3">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1>Your Guestbook</h1>
+                    <div>
+                        <a href="{% url 'create_entry' %}" class="btn btn-primary">Create New Entry</a>
+                        <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Time Synchronization Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Your Local Time:</strong> <span id="localTime"></span></p>
+                                <p><strong>Server Time:</strong> <span id="serverTime">{{ local_time }}</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Time Offset:</strong> <span id="timeOffset">Calculating...</span></p>
+                                <button id="syncTimeBtn" class="btn btn-sm btn-outline-primary">Sync Time Now</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                {% if entries %}
+                    {% for entry in entries %}
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>From:</strong> {{ entry.sender.username }}
+                            </div>
+                            <div>
+                                <span class="badge bg-info">{{ entry.synchronized_timestamp|date:"M d, Y H:i:s" }}</span>
+                                <form method="post" action="{% url 'delete_guestbook_entry' entry.id %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            {{ entry.content }}
+                        </div>
+                        <div class="card-footer text-muted">
+                            <small>
+                                <i class="bi bi-info-circle"></i> Synchronized timestamp using Berkeley Clock Algorithm
+                            </small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <p>You don't have any guestbook entries yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function updateLocalTime() {
+            const now = new Date();
+            document.getElementById('localTime').textContent = now.toLocaleString();
+        }
+
+        function calculateTimeOffset() {
+            const localTime = new Date();
+            const serverTime = new Date("{{ local_time }}");
+
+            if (isNaN(serverTime.getTime())) {
+                document.getElementById('timeOffset').textContent = "Unknown";
+                return;
+            }
+
+            const offsetMs = localTime.getTime() - serverTime.getTime();
+            const offsetSec = (offsetMs / 1000).toFixed(2);
+
+            document.getElementById('timeOffset').textContent =
+                offsetSec + " seconds " + (offsetSec > 0 ? "ahead" : "behind");
+        }
+
+        function syncTimeNow() {
+            const syncButton = document.getElementById('syncTimeBtn');
+            syncButton.disabled = true;
+            syncButton.textContent = "Syncing...";
+
+            fetch('/api/rpc/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    method: 'synchronize_time',
+                    params: {
+                        coordinator_id: {{ request.user.id }},
+                        participant_ids: []
+                    }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('serverTime').textContent = data.result;
+                    calculateTimeOffset();
+
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                    alertDiv.innerHTML = `
+                        <strong>Success!</strong> Time synchronized.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.querySelector('.container').prepend(alertDiv);
+                } else {
+                    console.error("Error syncing time:", data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                syncButton.disabled = false;
+                syncButton.textContent = "Sync Time Now";
+            });
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        updateLocalTime();
+        calculateTimeOffset();
+        setInterval(updateLocalTime, 1000);
+        document.getElementById('syncTimeBtn').addEventListener('click', syncTimeNow);
+    });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+ {% load humanize %}
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <title>Your Guestbook</title>
+     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+     <style>
+         .bg-animation {
+             position: fixed;
+             width: 100%;
+             height: 100%;
+             top: 0;
+             left: 0;
+             z-index: -1;
+             background: #f8f9fa;
+         }
+         
+         .card {
+             margin-bottom: 20px;
+             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+         }
+ 
+         .alert {
+             background-color: #f8f9fa;
+             border: 1px solid #dee2e6;
+             padding: 15px;
+             border-radius: 4px;
+         }
+     </style>
+ </head>
+ <body>
+     <div class="bg-animation">
+         <div></div>
+         <div></div>
+     </div>
+ 
+     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+         <div class="container">
+             <a class="navbar-brand" href="{% url 'home' %}">My Site</a>
+             <div class="navbar-nav ms-auto">
+                 {% if user.is_authenticated %}
+                     <span class="nav-item nav-link">Welcome, {{ user.username }}</span>
+                 {% else %}
+                     <a class="nav-item nav-link" href="{% url 'login' %}">Login</a>
+                     <a class="nav-item nav-link" href="{% url 'signup' %}">Sign Up</a>
+                 {% endif %}
+             </div>
+         </div>
+     </nav>
+ 
+     <div class="container">
+         <div class="row">
+             <div class="col-md-8">
+                 <h2>Your Guestbook Entries</h2>
+                 
+                 <a href="{% url 'create_entry' %}" class="btn btn-primary mb-3">
+                     <i class="fas fa-pen"></i> Write New Entry
+                 </a>
+ 
+                 {% if entries %}
+                     {% for entry in entries %}
+                         <div class="card">
+                             <div class="card-header d-flex justify-content-between align-items-center">
+                                 <strong>
+                                     {% if entry.sender.first_name or entry.sender.last_name %}
+                                         {{ entry.sender.first_name }} {{ entry.sender.last_name }}
+                                     {% else %}
+                                         {{ entry.sender.username }}
+                                     {% endif %}
+                                 </strong>
+                                 <small>{{ entry.created_at|naturaltime }}</small>
+                             </div>
+                             <div class="card-body">
+                                 <p class="card-text">{{ entry.content }}</p>
+                             </div>
+                             <div class="card-footer d-flex justify-content-between align-items-center">
+                                 <span>Sent via Guestbook</span>
+                                 <form method="post" action="{% url 'delete_guestbook_entry' entry.id %}" class="d-inline">
+                                     {% csrf_token %}
+                                     <button type="submit" class="btn btn-danger btn-sm" 
+                                             onclick="return confirm('Are you sure you want to delete this entry?');">
+                                         <i class="fas fa-trash"></i> Delete
+                                     </button>
+                                 </form>
+                             </div>
+                         </div>
+                     {% endfor %}
+                 {% else %}
+                     <div class="alert">
+                         No guestbook entries yet. 
+                         <a href="{% url 'create_entry' %}">Write your first entry!</a>
+                     </div>
+                 {% endif %}
+             </div>
+         </div>
+     </div>
+ 
+     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+ </body>
+ </html>
