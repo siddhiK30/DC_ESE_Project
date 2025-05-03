@@ -170,6 +170,8 @@ from django.contrib.auth.hashers import make_password
 from .models import GuestbookEntry
 from .serializers import GuestbookEntrySerializer, UserSerializer
 from .time_sync import BerkeleyClock, RPCHandler
+import logging
+logger = logging.getLogger(__name__)
 
 class SignupView(APIView):
     def get(self, request):
@@ -372,17 +374,50 @@ class CreateGuestbookEntryView(APIView):
             "synchronized_time": synchronized_time.isoformat() if synchronized_time else None
         }, status=status.HTTP_201_CREATED)
 
-# New RPC specific view
+# # New RPC specific view
+# class RPCView(APIView):
+#     permission_classes = [IsAuthenticated]
+    
+#     def post(self, request):
+#         """Handle direct RPC calls from the frontend"""
+#         try:
+#             method = request.data.get('method')
+#             params = request.data.get('params', {})
+            
+#             # Call the RPC handler
+#             result = RPCHandler.call(
+#                 method=method,
+#                 params=params,
+#                 user_id=request.user.id
+#             )
+            
+#             return Response({
+#                 'success': True,
+#                 'result': result
+#             }, status=status.HTTP_200_OK)
+            
+#         except Exception as e:
+#             return Response({
+#                 'success': False,
+#                 'error': str(e)
+#             }, status=status.HTTP_400_BAD_REQUEST)
+# Simple RPC View with load balancing
 class RPCView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
-        """Handle direct RPC calls from the frontend"""
+        """Handle direct RPC calls from the frontend with load balancing"""
         try:
             method = request.data.get('method')
             params = request.data.get('params', {})
             
-            # Call the RPC handler
+            if not method:
+                return Response({
+                    'success': False,
+                    'error': "Method is required"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Call the RPC handler with load balancing
             result = RPCHandler.call(
                 method=method,
                 params=params,
@@ -395,6 +430,7 @@ class RPCView(APIView):
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
+            logger.error(f"RPC call failed: {e}")
             return Response({
                 'success': False,
                 'error': str(e)

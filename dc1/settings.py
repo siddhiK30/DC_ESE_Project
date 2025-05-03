@@ -168,3 +168,9 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     }
 }
+# Define your RPC servers for load balancing
+RPC_SERVERS = [
+    
+    'http://127.0.0.1:8002/rpc',
+    'http://127.0.0.1:8003/rpc',
+]
